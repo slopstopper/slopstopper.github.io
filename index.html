@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>slopstopper — coherent doesn't mean correct</title>
+<meta name="description" content="slopstopper is a set of tools that catch slop in code: plumb-line, tokenomics, and recursive-spine. Each stands alone; any combination works as one system.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="assets/mark.png">
+
+<meta property="og:title" content="slopstopper — coherent doesn't mean correct">
+<meta property="og:description" content="Tools that catch slop in code. plumb-line · tokenomics · recursive-spine.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/mark.png">
+
+<style>
+/* ============================================================
+   slopstopper.github.io — one file, no external calls at runtime.
+   Set in Bricolage Grotesque + IBM Plex Mono, self-hosted.
+   ============================================================ */
+
+@font-face{font-family:"Bricolage";src:url("fonts/bricolage-400.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Bricolage";src:url("fonts/bricolage-500.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"Bricolage";src:url("fonts/bricolage-700.woff2") format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:"Bricolage";src:url("fonts/bricolage-800.woff2") format("woff2");font-weight:800;font-display:swap}
+@font-face{font-family:"PlexMono";src:url("fonts/plexmono-400.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"PlexMono";src:url("fonts/plexmono-600.woff2") format("woff2");font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:"PlexMono";src:url("fonts/plexmono-400-italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap}
+
+:root{
+  --paper:#f5f4f2; --ink:#17171a; --red:#d1553f;
+  --bg:var(--paper); --fg:var(--ink);
+  --hair: color-mix(in srgb, var(--ink) 16%, transparent);
+  --hair-strong: color-mix(in srgb, var(--ink) 34%, transparent);
+  --muted: color-mix(in srgb, var(--ink) 58%, transparent);
+  --faint: color-mix(in srgb, var(--ink) 8%, transparent);
+  --red-soft: color-mix(in srgb, var(--red) 14%, transparent);
+  --gutter: clamp(2.75rem, 8vw, 7.5rem);
+  --edge: clamp(1.1rem, 5vw, 4rem);
+  --maxw: 1220px;
+  --mono:"PlexMono", ui-monospace, "SF Mono", Menlo, monospace;
+  --disp:"Bricolage", ui-sans-serif, system-ui, sans-serif;
+}
+html[data-theme="dark"]{
+  --bg:var(--ink); --fg:var(--paper);
+  --hair: color-mix(in srgb, var(--paper) 15%, transparent);
+  --hair-strong: color-mix(in srgb, var(--paper) 30%, transparent);
+  --muted: color-mix(in srgb, var(--paper) 60%, transparent);
+  --faint: color-mix(in srgb, var(--paper) 6%, transparent);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:var(--disp); font-weight:400;
+  font-size:clamp(1rem,0.5vw + 0.92rem,1.12rem);
+  line-height:1.62; letter-spacing:-0.006em;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+  transition:background .5s ease, color .5s ease;
+}
+/* paper grain */
+body::before{
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity:.035; mix-blend-mode:multiply;
+}
+html[data-theme="dark"] body::before{mix-blend-mode:screen; opacity:.05}
+
+::selection{background:var(--red); color:var(--paper)}
+
+a{color:inherit; text-decoration:none}
+:focus-visible{outline:2px solid var(--red); outline-offset:3px; border-radius:2px}
+
+/* ---------- layout scaffold ---------- */
+.wrap{position:relative; z-index:1; max-width:var(--maxw); margin:0 auto;
+  padding-left:calc(var(--edge) + var(--gutter)); padding-right:var(--edge)}
+@media(max-width:640px){ :root{--gutter:2.25rem} }
+
+/* the plumb line — a red string down the gutter, ending in a bob.
+   It swings on load and settles perfectly vertical: it finds true down. */
+.plumb{position:absolute; z-index:0; top:0; bottom:0;
+  left:calc(var(--edge) + var(--gutter)*0.5); width:0;
+  pointer-events:none; transform-origin:top center;
+  animation:settle 2.6s cubic-bezier(.2,.8,.2,1) 1 both}
+.plumb .string{position:absolute; top:0; bottom:34px; left:-1px; width:2px;
+  background:linear-gradient(var(--hair-strong), var(--red) 60%, var(--red))}
+.plumb .bob{position:absolute; bottom:0; left:-8px; width:16px; height:34px}
+@keyframes settle{
+  0%{transform:rotate(9deg)} 22%{transform:rotate(-6.5deg)}
+  44%{transform:rotate(4deg)} 64%{transform:rotate(-2.2deg)}
+  82%{transform:rotate(1deg)} 100%{transform:rotate(0)}
+}
+
+/* ---------- masthead / nav ---------- */
+.topbar{position:sticky; top:0; z-index:40;
+  backdrop-filter:saturate(1.1) blur(6px);
+  background:color-mix(in srgb, var(--bg) 82%, transparent);
+  border-bottom:1px solid var(--hair)}
+.topbar .row{max-width:var(--maxw); margin:0 auto;
+  padding:.75rem var(--edge); display:flex; align-items:center; gap:1.5rem}
+.brand{display:flex; align-items:center; gap:.55rem; margin-right:auto}
+.brand svg{height:19px; width:auto; display:block}
+.brand .tag{font-family:var(--mono); font-size:.62rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--muted); padding-left:.65rem;
+  border-left:1px solid var(--hair)}
+@media(max-width:720px){.brand .tag{display:none}}
+nav.links{display:flex; gap:1.35rem; align-items:center;
+  font-family:var(--mono); font-size:.72rem; letter-spacing:.06em; text-transform:uppercase}
+nav.links a{color:var(--muted); position:relative; padding:.2rem 0}
+nav.links a:hover{color:var(--fg)}
+nav.links a::after{content:""; position:absolute; left:0; right:100%; bottom:-2px;
+  height:1px; background:var(--red); transition:right .28s ease}
+nav.links a:hover::after{right:0}
+@media(max-width:860px){nav.links a.hideable{display:none}}
+.ttog{font-family:var(--mono); font-size:.7rem; text-transform:uppercase;
+  letter-spacing:.08em; background:none; border:1px solid var(--hair);
+  color:var(--muted); padding:.35rem .55rem; border-radius:100px; cursor:pointer;
+  display:inline-flex; align-items:center; gap:.4rem; transition:border-color .2s,color .2s}
+.ttog:hover{border-color:var(--hair-strong); color:var(--fg)}
+.ttog svg{width:13px; height:13px}
+
+/* ---------- section chrome ---------- */
+section{position:relative; padding-block:clamp(4.5rem,10vw,8.5rem)}
+section + section{border-top:1px solid var(--hair)}
+.snum{position:absolute; left:calc(-1 * var(--gutter)); top:clamp(4.5rem,10vw,8.5rem);
+  width:var(--gutter); font-family:var(--mono); font-size:.7rem; letter-spacing:.1em;
+  color:var(--muted); line-height:1.5}
+.snum b{display:block; color:var(--red); font-weight:600}
+@media(max-width:640px){.snum{display:none}}
+.eyebrow{font-family:var(--mono); font-size:.74rem; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--red); margin:0 0 1.4rem}
+h2{font-family:var(--disp); font-weight:700; letter-spacing:-0.03em; line-height:.98;
+  font-size:clamp(2.15rem,6.2vw,4.6rem); margin:0 0 1.6rem; max-width:15ch}
+.lead{font-size:clamp(1.12rem,1.4vw,1.4rem); line-height:1.55; max-width:46ch; color:var(--fg)}
+p{margin:0 0 1.1rem}
+.muted{color:var(--muted)}
+
+/* ---------- hero ---------- */
+.hero{padding-top:clamp(3.5rem,8vw,6.5rem); padding-bottom:clamp(4rem,9vw,7rem)}
+.hero .mast{width:clamp(240px,52vw,540px); height:auto; display:block; margin-bottom:clamp(2.2rem,5vw,3.4rem)}
+.hero .mast .wm-letter,.hero .mast .wm-bar{fill:var(--fg)}
+.hero .mast .wm-plumb{fill:var(--red)}
+.epi{font-weight:500; letter-spacing:-0.025em; line-height:1.12;
+  font-size:clamp(1.55rem,4vw,3.15rem); max-width:19ch; margin:0 0 2.2rem}
+.epi span{display:block; opacity:0; transform:translateY(14px);
+  animation:rise .9s cubic-bezier(.2,.75,.2,1) forwards}
+.epi span:nth-child(1){animation-delay:.15s}
+.epi span:nth-child(2){animation-delay:.30s}
+.epi span:nth-child(3){animation-delay:.45s}
+.epi span:nth-child(4){animation-delay:.60s}
+.epi .k{color:var(--red)}
+@keyframes rise{to{opacity:1; transform:none}}
+.hero .sub{max-width:52ch; font-size:clamp(1.05rem,1.1vw,1.22rem); color:var(--fg)}
+.hero .sub b{font-weight:700}
+.cta{display:flex; flex-wrap:wrap; gap:.8rem 1rem; align-items:center; margin-top:2rem}
+.btn{font-family:var(--mono); font-size:.82rem; letter-spacing:.02em;
+  display:inline-flex; align-items:center; gap:.6rem; padding:.7rem 1.05rem;
+  border:1px solid var(--fg); color:var(--fg); border-radius:2px; cursor:pointer;
+  background:none; transition:background .2s,color .2s,transform .2s}
+.btn:hover{background:var(--fg); color:var(--bg); transform:translateY(-1px)}
+.btn.pri{border-color:var(--red); background:var(--red); color:var(--paper)}
+.btn.pri:hover{background:transparent; color:var(--red)}
+.btn .arr{transition:transform .2s} .btn:hover .arr{transform:translateX(3px)}
+
+/* ---------- tools : datasheet rows ---------- */
+.tool{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);
+  gap:clamp(1rem,4vw,3.5rem); padding:2.2rem 0; border-top:1px solid var(--hair);
+  align-items:start; position:relative; transition:padding-left .3s ease}
+.tool:first-of-type{border-top:1px solid var(--hair-strong)}
+.tool:last-child{border-bottom:1px solid var(--hair)}
+.tool:hover{padding-left:.9rem}
+.tool::before{content:""; position:absolute; left:0; top:2.2rem; bottom:2.2rem; width:2px;
+  background:var(--red); transform:scaleY(0); transform-origin:top; transition:transform .3s ease}
+.tool:hover::before{transform:scaleY(1)}
+.tool .tid{font-family:var(--mono); font-size:.72rem; color:var(--red); letter-spacing:.1em; margin-bottom:.7rem}
+.tool h3{font-family:var(--disp); font-weight:700; letter-spacing:-0.02em;
+  font-size:clamp(1.7rem,3.4vw,2.5rem); line-height:1; margin:0 0 .55rem}
+.tool .measures{font-family:var(--mono); font-size:.75rem; letter-spacing:.04em;
+  text-transform:uppercase; color:var(--muted)}
+.tool .measures b{color:var(--fg); font-weight:600}
+.tool .desc{font-size:1.02rem; line-height:1.55; margin:.2rem 0 1.1rem}
+.pills{display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:1rem}
+.pill{font-family:var(--mono); font-size:.68rem; letter-spacing:.04em; color:var(--muted);
+  border:1px solid var(--hair); border-radius:100px; padding:.22rem .6rem}
+.pill.live{color:var(--red); border-color:var(--red-soft)}
+.tlinks{display:flex; flex-wrap:wrap; gap:.35rem 1.2rem; font-family:var(--mono); font-size:.78rem}
+.tlinks a{display:inline-flex; align-items:center; gap:.4rem; color:var(--fg);
+  border-bottom:1px solid var(--hair-strong); padding-bottom:1px; transition:color .2s,border-color .2s}
+.tlinks a:hover{color:var(--red); border-color:var(--red)}
+.tlinks a .arr{transition:transform .2s} .tlinks a:hover .arr{transform:translate(2px,-2px)}
+@media(max-width:720px){.tool{grid-template-columns:1fr; gap:1.1rem}}
+
+/* ---------- recursion pull-quote ---------- */
+.recursion .quote{font-family:var(--disp); font-weight:500; letter-spacing:-0.02em;
+  font-size:clamp(1.5rem,3.4vw,2.6rem); line-height:1.18; max-width:20ch}
+.recursion .quote em{font-style:normal; color:var(--red)}
+.recursion .body{max-width:60ch; margin-top:2rem; color:var(--muted); font-size:1.05rem}
+.recursion .body strong{color:var(--fg); font-weight:600}
+
+/* ---------- risk register ---------- */
+.register{border-top:1px solid var(--hair-strong)}
+.risk{display:grid; grid-template-columns:minmax(0,0.85fr) minmax(0,1.6fr);
+  gap:clamp(.6rem,3vw,2.5rem); padding:1.5rem 0; border-bottom:1px solid var(--hair); align-items:baseline}
+.risk dt{font-family:var(--disp); font-weight:700; letter-spacing:-0.01em; font-size:1.22rem;
+  display:flex; gap:.7rem; align-items:baseline}
+.risk dt .rn{font-family:var(--mono); font-weight:400; font-size:.72rem; color:var(--red); flex:none}
+.risk dd{margin:0; color:var(--muted); font-size:1.02rem; line-height:1.5}
+@media(max-width:640px){.risk{grid-template-columns:1fr; gap:.35rem}}
+
+/* ---------- more will follow : the three axes ---------- */
+.axes{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--hair);
+  border:1px solid var(--hair); margin:2.4rem 0}
+.axis{background:var(--bg); padding:1.6rem 1.4rem}
+.axis .n{font-family:var(--mono); font-size:.7rem; letter-spacing:.1em; color:var(--red); margin-bottom:.8rem}
+.axis h4{font-family:var(--disp); font-weight:700; font-size:1.15rem; margin:0 0 .4rem; letter-spacing:-0.01em}
+.axis p{font-size:.92rem; color:var(--muted); margin:0; line-height:1.5}
+.axis .soon{background:var(--faint)}
+.axis .soon h4{color:var(--muted)}
+@media(max-width:720px){.axes{grid-template-columns:1fr}}
+.more .note{max-width:56ch; margin-top:1.6rem; color:var(--muted)}
+.more .note a{border-bottom:1px solid var(--red); color:var(--fg)} .more .note a:hover{color:var(--red)}
+
+/* ---------- install ---------- */
+.install .grid{display:grid; grid-template-columns:1fr; gap:1rem; max-width:720px; margin-top:1.8rem}
+.cmd{position:relative; border:1px solid var(--hair-strong); border-radius:3px; background:var(--faint)}
+.cmd .h{display:flex; justify-content:space-between; align-items:center;
+  padding:.55rem .9rem; border-bottom:1px solid var(--hair); font-family:var(--mono);
+  font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+.cmd pre{margin:0; padding:1rem .9rem; overflow-x:auto; font-family:var(--mono);
+  font-size:.86rem; line-height:1.7}
+.cmd pre .p{color:var(--red)}
+.copy{font-family:var(--mono); font-size:.64rem; letter-spacing:.08em; text-transform:uppercase;
+  background:none; border:1px solid var(--hair); color:var(--muted); border-radius:100px;
+  padding:.2rem .55rem; cursor:pointer; transition:.2s}
+.copy:hover{color:var(--fg); border-color:var(--hair-strong)}
+.copy.done{color:var(--red); border-color:var(--red)}
+.install .aside{margin-top:1.4rem; max-width:52ch; color:var(--muted); font-size:.98rem}
+
+/* ---------- status / closer ---------- */
+.status .big{font-family:var(--disp); font-weight:700; letter-spacing:-0.03em; line-height:1.02;
+  font-size:clamp(1.9rem,5.2vw,3.8rem); max-width:16ch; margin:0 0 1.8rem}
+.status .big .s{color:var(--red)}
+.status .honest{max-width:56ch; color:var(--muted)}
+.status .honest strong{color:var(--fg); font-weight:600}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
+  position:relative; z-index:1}
+.fcols{max-width:var(--maxw); margin:0 auto; padding:0 var(--edge);
+  display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:2rem}
+.fcols .about{max-width:34ch; color:var(--muted); font-size:.92rem}
+.fcols .about svg{height:16px; margin-bottom:1rem; display:block}
+.fcols .about svg .wm-letter,.fcols .about svg .wm-bar{fill:var(--fg)}
+.fcols .about svg .wm-plumb{fill:var(--red)}
+.fgroup h5{font-family:var(--mono); font-size:.66rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--red); margin:0 0 .9rem}
+.fgroup a{display:block; font-family:var(--mono); font-size:.82rem; color:var(--muted);
+  padding:.28rem 0; transition:color .2s}
+.fgroup a:hover{color:var(--fg)}
+.colophon{max-width:var(--maxw); margin:2.6rem auto 0; padding:1.4rem var(--edge) 0;
+  border-top:1px solid var(--hair); font-family:var(--mono); font-size:.68rem;
+  letter-spacing:.03em; color:var(--muted); display:flex; flex-wrap:wrap; gap:.6rem 1.4rem; justify-content:space-between}
+@media(max-width:720px){.fcols{grid-template-columns:1fr 1fr} .fcols .about{grid-column:1/-1}}
+
+/* ---------- scroll reveal ---------- */
+.reveal{opacity:0; transform:translateY(22px); transition:opacity .7s ease, transform .7s cubic-bezier(.2,.75,.2,1)}
+.reveal.in{opacity:1; transform:none}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important; transition:none!important}
+  .reveal{opacity:1; transform:none}
+  .epi span{opacity:1; transform:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+  <div class="row">
+    <a class="brand" href="#top" aria-label="slopstopper — home">
+      <!-- themed inline wordmark -->
+      <svg viewBox="72 254 723.7 170" role="img" aria-label="slopstopper">
+        <g transform="translate(90,160)">
+          <text class="wm-letter" x="0" y="220" font-size="120" font-family="Arial,Helvetica,sans-serif" font-weight="800" letter-spacing="-3">s</text>
+          <g transform="translate(58.384,144.716) scale(0.76814)">
+            <rect class="wm-bar" x="14" y="40" width="72" height="11" rx="5.5"/>
+            <rect class="wm-bar" x="14" y="63" width="72" height="11" rx="5.5"/>
+            <rect class="wm-plumb" x="42" y="-2" width="16" height="116" rx="8" transform="rotate(24 50 57)"/>
+          </g>
+          <text class="wm-letter" x="126.8" y="220" font-size="120" font-family="Arial,Helvetica,sans-serif" font-weight="800" letter-spacing="-3">opstopper</text>
+        </g>
+      </svg>
+      <span class="tag">coherent&nbsp;≠&nbsp;correct</span>
+    </a>
+    <nav class="links" aria-label="Primary">
+      <a href="#tools">The&nbsp;tools</a>
+      <a href="#risks" class="hideable">What&nbsp;goes&nbsp;wrong</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/slopstopper" class="hideable" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <button class="ttog" id="ttog" aria-label="Toggle light or dark theme">
+      <svg id="tico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg>
+      <span id="tlbl">Dark</span>
+    </button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="plumb" aria-hidden="true">
+    <span class="string"></span>
+    <svg class="bob" viewBox="0 0 16 34"><path d="M8 0 L15 12 L8 34 L1 12 Z" fill="#d1553f"/></svg>
+  </div>
+
+  <main>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero" id="top">
+    <svg class="mast" viewBox="72 254 723.7 170" role="img" aria-label="slopstopper">
+      <g transform="translate(90,160)">
+        <text class="wm-letter" x="0" y="220" font-size="120" font-family="Arial,Helvetica,sans-serif" font-weight="800" letter-spacing="-3">s</text>
+        <g transform="translate(58.384,144.716) scale(0.76814)">
+          <rect class="wm-bar" x="14" y="40" width="72" height="11" rx="5.5"/>
+          <rect class="wm-bar" x="14" y="63" width="72" height="11" rx="5.5"/>
+          <rect class="wm-plumb" x="42" y="-2" width="16" height="116" rx="8" transform="rotate(24 50 57)"/>
+        </g>
+        <text class="wm-letter" x="126.8" y="220" font-size="120" font-family="Arial,Helvetica,sans-serif" font-weight="800" letter-spacing="-3">opstopper</text>
+      </g>
+    </svg>
+
+    <h1 class="epi">
+      <span>Coherent doesn't mean it's <span class="k">correct</span>.</span>
+      <span>Completed doesn't mean it's been <span class="k">checked</span>.</span>
+      <span>Confidence doesn't mean it has <span class="k">provenance</span>.</span>
+      <span>It looks like it works — but does it have the right <span class="k">effect</span>?</span>
+    </h1>
+
+    <p class="sub"><b>slopstopper is a set of tools that catch slop in code.</b> Each stands
+      alone, and any combination of them works together as one system —
+      a plumb line for software: true vertical, by measurement, not by vibes.</p>
+
+    <div class="cta">
+      <a class="btn pri" href="#install">Install <span class="arr">→</span></a>
+      <a class="btn" href="#tools">The three tools <span class="arr">↓</span></a>
+    </div>
+  </section>
+
+  <!-- ============ WHAT IS SLOP ============ -->
+  <section id="slop">
+    <div class="snum"><b>§01</b>the enemy</div>
+    <p class="eyebrow">Named</p>
+    <h2>Slop is coherence without provenance.</h2>
+    <p class="lead">Fluent, plausible, confident output — unmoored from anything that
+      checked it. It sounds finished, looks measured, and reads as decided.</p>
+    <p class="muted" style="max-width:56ch;margin-top:1.4rem">Coherence used to be a
+      signal: if a document held together, someone had probably thought about it.
+      Generative tools broke that. Now everything holds together, including nonsense.
+      slopstopper puts the missing signal back — as something a machine can check.</p>
+  </section>
+
+  <!-- ============ THE TOOLS ============ -->
+  <section id="tools">
+    <div class="snum"><b>§02</b>in use</div>
+    <p class="eyebrow">Three tools · one system</p>
+    <h2>Three concerns that don't overlap.</h2>
+    <p class="lead" style="margin-bottom:2.6rem">Honesty of claims, economics of effort,
+      location of state. Each tool measures exactly one — and defers on the other two.</p>
+
+    <div class="tool">
+      <div>
+        <div class="tid">01 / plumb-line</div>
+        <h3>plumb-line</h3>
+        <p class="measures">measures — <b>whether claims are honest</b></p>
+      </div>
+      <div>
+        <p class="desc">Provenance primitives for JavaScript and Python, plus skills that
+          audit a diff for laundered uncertainty — and refuse to launder it back out
+          during the fix. Mock, derived, measured, asserted: the label travels with the value.</p>
+        <div class="pills">
+          <span class="pill live">● in use</span><span class="pill">v0.7</span>
+          <span class="pill">JS + Python</span><span class="pill">zero deps</span>
+        </div>
+        <div class="tlinks">
+          <a href="https://effythealien.github.io/plumb-line/" target="_blank" rel="noopener">Live site <span class="arr">↗</span></a>
+          <a href="https://github.com/slopstopper/plumb-line" target="_blank" rel="noopener">Repository <span class="arr">↗</span></a>
+          <a href="https://www.npmjs.com/package/plumb-line-provenance" target="_blank" rel="noopener">npm / PyPI <span class="arr">↗</span></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="tool">
+      <div>
+        <div class="tid">02 / tokenomics</div>
+        <h3>tokenomics</h3>
+        <p class="measures">measures — <b>which model should do the work</b></p>
+      </div>
+      <div>
+        <p class="desc">A discipline of context economics: route each task to the cheapest
+          capable tier, name your own lanes (no defaults shipped), and carry strategy across
+          sessions in a living playbook of reusable method — not re-exploration.</p>
+        <div class="pills">
+          <span class="pill live">● in use</span><span class="pill">v0.3</span>
+          <span class="pill">3 skills + method</span>
+        </div>
+        <div class="tlinks">
+          <a href="https://github.com/slopstopper/tokenomics" target="_blank" rel="noopener">Repository <span class="arr">↗</span></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="tool">
+      <div>
+        <div class="tid">03 / recursive-spine</div>
+        <h3>recursive-spine</h3>
+        <p class="measures">measures — <b>where tracked state lives</b></p>
+      </div>
+      <div>
+        <p class="desc">GitHub issues and milestones as the only home of work state —
+          queryable, conflict-free, never a prose file that merges as text and loses rows.
+          Plus cross-project “pollen” that carries a proven pattern from one repo to the next.
+          Its own tracker existed before its first commit.</p>
+        <div class="pills">
+          <span class="pill live">● in use</span><span class="pill">v0.8</span>
+          <span class="pill">8 skills</span>
+        </div>
+        <div class="tlinks">
+          <a href="https://github.com/slopstopper/recursive-spine" target="_blank" rel="noopener">Repository <span class="arr">↗</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ APPLIED TO ITSELF ============ -->
+  <section id="recursion" class="recursion">
+    <div class="snum"><b>§03</b>the recursion</div>
+    <p class="eyebrow">Applied to itself</p>
+    <blockquote class="quote">The rule of the house: if a discipline is too heavy to
+      follow while building the tool that states it, the discipline is <em>wrong</em>.</blockquote>
+    <p class="body">plumb-line's audit skill was run against plumb-line and produced a
+      remediation plan it then had to survive. recursive-spine's issues and milestones existed
+      before its first commit; its labels were stamped by its own bootstrap; its deferrals age
+      on its own digest. <strong>Change the rule and leave the record alone.</strong></p>
+  </section>
+
+  <!-- ============ WHAT GOES WRONG ============ -->
+  <section id="risks">
+    <div class="snum"><b>§04</b>the register</div>
+    <p class="eyebrow">Failure modes</p>
+    <h2>What goes wrong when fluent tools meet real work.</h2>
+    <dl class="register" style="margin-top:2.4rem">
+      <div class="risk"><dt><span class="rn">R1</span>Laundered uncertainty</dt>
+        <dd>A mock value gets used as if it were measured. It ends up in a dashboard, then a
+          decision, and nothing along the way marks it as a guess.</dd></div>
+      <div class="risk"><dt><span class="rn">R2</span>Self-graded homework</dt>
+        <dd>The tool that made the claim is the same tool that checks it.</dd></div>
+      <div class="risk"><dt><span class="rn">R3</span>Prose-ledger rot</dt>
+        <dd>Work tracked in a document drifts from reality almost immediately. Merges drop
+          rows and the file still reads fine.</dd></div>
+      <div class="risk"><dt><span class="rn">R4</span>Silent deferral</dt>
+        <dd>A “later” that isn't written down anywhere usually just doesn't happen.</dd></div>
+      <div class="risk"><dt><span class="rn">R5</span>Economics slop</dt>
+        <dd>An expensive model running work a cheap one could do — or a cheap one running work
+          it can't, and having to redo it.</dd></div>
+      <div class="risk"><dt><span class="rn">R6</span>Overstated maturity</dt>
+        <dd>Everything gets called “production-ready,” including things that aren't.</dd></div>
+    </dl>
+  </section>
+
+  <!-- ============ MORE WILL FOLLOW ============ -->
+  <section id="more" class="more">
+    <div class="snum"><b>§05</b>the plan</div>
+    <p class="eyebrow">Expanding</p>
+    <h2>More will follow.</h2>
+    <p class="lead">Three seams today, deliberately disjoint. The frame has room for more —
+      and the vocabulary is pinned so the same word can't mean three things.</p>
+    <div class="axes">
+      <div class="axis"><div class="n">AXIS 01</div><h4>Honesty</h4><p>Are the claims true, and do they carry where they came from?</p></div>
+      <div class="axis"><div class="n">AXIS 02</div><h4>Economics</h4><p>Is the right model doing the work, at the right cost?</p></div>
+      <div class="axis"><div class="n">AXIS 03</div><h4>State</h4><p>Does the record of the work live where it can be queried?</p></div>
+    </div>
+    <p class="note">Where the seams meet, the shared vocabulary is pinned in the
+      <a href="https://github.com/slopstopper/marketplace" target="_blank" rel="noopener">marketplace</a> —
+      one owner per term, the others defer or alias. New instruments join on that condition, or not at all.</p>
+  </section>
+
+  <!-- ============ INSTALL ============ -->
+  <section id="install" class="install">
+    <div class="snum"><b>§06</b>get it</div>
+    <p class="eyebrow">One add, three tools</p>
+    <h2>Install.</h2>
+    <p class="lead">From inside Claude Code. Each plugin also works alone; none requires its siblings.</p>
+    <div class="grid">
+      <div class="cmd">
+        <div class="h"><span>Add the marketplace</span><button class="copy" data-copy="/plugin marketplace add slopstopper/marketplace">Copy</button></div>
+        <pre><span class="p">/plugin</span> marketplace add slopstopper/marketplace</pre>
+      </div>
+      <div class="cmd">
+        <div class="h"><span>Install what you want</span><button class="copy" data-copy="/plugin install plumb-line@slopstopper&#10;/plugin install tokenomics@slopstopper&#10;/plugin install recursive-spine@slopstopper">Copy</button></div>
+<pre><span class="p">/plugin</span> install plumb-line@slopstopper
+<span class="p">/plugin</span> install tokenomics@slopstopper
+<span class="p">/plugin</span> install recursive-spine@slopstopper</pre>
+      </div>
+    </div>
+    <p class="aside">Prefer to read first? Start with <b>plumb-line</b>'s
+      <a href="https://effythealien.github.io/plumb-line/" target="_blank" rel="noopener" style="border-bottom:1px solid var(--red)">live docs</a>,
+      or the org profile on <a href="https://github.com/slopstopper" target="_blank" rel="noopener" style="border-bottom:1px solid var(--red)">GitHub</a>.</p>
+  </section>
+
+  <!-- ============ STATUS / CLOSER ============ -->
+  <section id="status" class="status">
+    <div class="snum"><b>§07</b>honestly</div>
+    <p class="eyebrow">Status, honestly</p>
+    <p class="big">None of this stops you from shipping <span class="s">slop</span>. It just
+      makes it visible, attributable, and slightly embarrassing.</p>
+    <p class="honest">From live practice in a few real projects, written up as practice
+      reports — not benchmarks. We would love to tell you these tools are <strong>battle-tested</strong>;
+      our own CI fails any README containing that phrase.</p>
+  </section>
+
+  </main>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="fcols">
+    <div class="about">
+      <svg viewBox="72 254 723.7 170" role="img" aria-label="slopstopper">
+        <g transform="translate(90,160)">
+          <text class="wm-letter" x="0" y="220" font-size="120" font-family="Arial,Helvetica,sans-serif" font-weight="800" letter-spacing="-3">s</text>
+          <g transform="translate(58.384,144.716) scale(0.76814)">
+            <rect class="wm-bar" x="14" y="40" width="72" height="11" rx="5.5"/>
+            <rect class="wm-bar" x="14" y="63" width="72" height="11" rx="5.5"/>
+            <rect class="wm-plumb" x="42" y="-2" width="16" height="116" rx="8" transform="rotate(24 50 57)"/>
+          </g>
+          <text class="wm-letter" x="126.8" y="220" font-size="120" font-family="Arial,Helvetica,sans-serif" font-weight="800" letter-spacing="-3">opstopper</text>
+        </g>
+      </svg>
+      Instruments against synthetic coherence. Extracted from live practice, applied to themselves, and honest about what they don't yet do.
+    </div>
+    <div class="fgroup">
+      <h5>Tools</h5>
+      <a href="https://github.com/slopstopper/plumb-line" target="_blank" rel="noopener">plumb-line ↗</a>
+      <a href="https://github.com/slopstopper/tokenomics" target="_blank" rel="noopener">tokenomics ↗</a>
+      <a href="https://github.com/slopstopper/recursive-spine" target="_blank" rel="noopener">recursive-spine ↗</a>
+    </div>
+    <div class="fgroup">
+      <h5>Org</h5>
+      <a href="https://github.com/slopstopper" target="_blank" rel="noopener">GitHub org ↗</a>
+      <a href="https://github.com/slopstopper/marketplace" target="_blank" rel="noopener">Marketplace ↗</a>
+      <a href="https://effythealien.github.io/plumb-line/" target="_blank" rel="noopener">plumb-line docs ↗</a>
+    </div>
+  </div>
+  <div class="colophon">
+    <span>© slopstopper — coherent doesn't mean correct.</span>
+    <span>Set in Bricolage Grotesque &amp; IBM Plex Mono · self-hosted, no trackers, no runtime external calls.</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  var SUN = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/>';
+  var MOON = '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>';
+  var ico = document.getElementById('tico'), lbl = document.getElementById('tlbl');
+
+  function apply(t){
+    root.setAttribute('data-theme', t);
+    // icon shows the theme you'd switch TO
+    ico.innerHTML = (t === 'dark') ? SUN : MOON;
+    lbl.textContent = (t === 'dark') ? 'Light' : 'Dark';
+  }
+  var saved = null;
+  try { saved = localStorage.getItem('ss-theme'); } catch(e){}
+  var initial = saved || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  apply(initial);
+
+  document.getElementById('ttog').addEventListener('click', function(){
+    var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    apply(next);
+    try { localStorage.setItem('ss-theme', next); } catch(e){}
+  });
+
+  // copy buttons
+  document.querySelectorAll('.copy').forEach(function(b){
+    b.addEventListener('click', function(){
+      var text = b.getAttribute('data-copy').replace(/&#10;/g, '\n');
+      navigator.clipboard.writeText(text).then(function(){
+        var old = b.textContent; b.textContent = 'Copied'; b.classList.add('done');
+        setTimeout(function(){ b.textContent = old; b.classList.remove('done'); }, 1400);
+      });
+    });
+  });
+
+  // smooth scroll for in-page anchors
+  document.querySelectorAll('a[href^="#"]').forEach(function(a){
+    a.addEventListener('click', function(e){
+      var el = document.querySelector(a.getAttribute('href'));
+      if(el){ e.preventDefault(); el.scrollIntoView({behavior:'smooth', block:'start'}); }
+    });
+  });
+
+  // scroll reveal
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!reduce && 'IntersectionObserver' in window){
+    document.querySelectorAll('section > :not(.snum), .tool').forEach(function(el){ el.classList.add('reveal'); });
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+    }, {rootMargin:'0px 0px -8% 0px', threshold:0.08});
+    document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+  }
+})();
+</script>
+</body>
+</html>
