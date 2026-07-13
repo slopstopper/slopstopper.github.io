@@ -7,7 +7,8 @@
 <meta name="description" content="slopstopper is a set of tools that catch slop in code: plumb-line, tokenomics, and recursive-spine. Each stands alone; any combination works as one system.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="alternate icon" href="assets/mark.png">
+<link rel="alternate icon" href="assets/favicon-512.png">
+<link rel="apple-touch-icon" href="assets/favicon-512.png">
 
 <meta property="og:title" content="slopstopper — coherent doesn't mean correct">
 <meta property="og:description" content="Tools that catch slop in code. plumb-line · tokenomics · recursive-spine.">
@@ -39,6 +40,7 @@
   --gutter: clamp(2.75rem, 8vw, 7.5rem);
   --edge: clamp(1.1rem, 5vw, 4rem);
   --maxw: 1220px;
+  --plumbL: clamp(300px, 58vh, 600px);
   --mono:"PlexMono", ui-monospace, "SF Mono", Menlo, monospace;
   --disp:"Bricolage", ui-sans-serif, system-ui, sans-serif;
 }
@@ -79,20 +81,23 @@ a{color:inherit; text-decoration:none}
   padding-left:calc(var(--edge) + var(--gutter)); padding-right:var(--edge)}
 @media(max-width:640px){ :root{--gutter:2.25rem} }
 
-/* the plumb line — a red string down the gutter, ending in a bob.
-   It swings on load and settles perfectly vertical: it finds true down. */
-.plumb{position:absolute; z-index:0; top:0; bottom:0;
-  left:calc(var(--edge) + var(--gutter)*0.5); width:0;
-  pointer-events:none; transform-origin:top center;
-  animation:settle 2.6s cubic-bezier(.2,.8,.2,1) 1 both}
-.plumb .string{position:absolute; top:0; bottom:34px; left:-1px; width:2px;
-  background:linear-gradient(var(--hair-strong), var(--red) 60%, var(--red))}
-.plumb .bob{position:absolute; bottom:0; left:-8px; width:16px; height:34px}
-@keyframes settle{
-  0%{transform:rotate(9deg)} 22%{transform:rotate(-6.5deg)}
-  44%{transform:rotate(4deg)} 64%{transform:rotate(-2.2deg)}
-  82%{transform:rotate(1deg)} 100%{transform:rotate(0)}
-}
+/* the plumb line — fixed to the viewport so it stays a true-vertical
+   reference. Grab the bob (or the string) and swing it; pendulum physics
+   (in JS) always settles it back to plumb. It finds true down. */
+.plumb-mark{position:absolute; top:0; left:calc(var(--edge) + var(--gutter)*0.5);
+  width:0; height:0; pointer-events:none}
+.plumb{position:fixed; z-index:30; top:0; height:var(--plumbL); width:0;
+  left:calc(max(0px, (100vw - var(--maxw)) / 2) + var(--edge) + var(--gutter)*0.5);
+  transform-origin:top center; will-change:transform; pointer-events:none}
+.plumb .string{position:absolute; top:0; bottom:34px; left:-1px; width:2px; border-radius:2px;
+  background:linear-gradient(var(--hair-strong), var(--red) 55%, var(--red))}
+.plumb .bob{position:absolute; bottom:0; left:-8px; width:16px; height:34px; transition:transform .18s ease;
+  filter:drop-shadow(0 3px 7px color-mix(in srgb, var(--red) 45%, transparent))}
+.plumb .grab{position:absolute; top:0; bottom:-14px; left:-24px; width:48px;
+  pointer-events:auto; cursor:grab; touch-action:pan-y}
+.plumb.grabbing .grab{cursor:grabbing}
+.plumb.swingable .grab:hover ~ .bob{transform:scale(1.12)}
+.plumb.grabbing .bob{transform:scale(1.14)}
 
 /* ---------- masthead / nav ---------- */
 .topbar{position:sticky; top:0; z-index:40;
@@ -329,7 +334,9 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
 </header>
 
 <div class="wrap">
+  <span class="plumb-mark" aria-hidden="true"></span>
   <div class="plumb" aria-hidden="true">
+    <span class="grab"></span>
     <span class="string"></span>
     <svg class="bob" viewBox="0 0 16 34"><path d="M8 0 L15 12 L8 34 L1 12 Z" fill="#d1553f"/></svg>
   </div>
@@ -649,6 +656,56 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
     }, {rootMargin:'0px 0px -8% 0px', threshold:0.08});
     document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
   }
+})();
+
+// ---- swingable plumb line ----
+(function(){
+  var plumb=document.querySelector('.plumb'), mark=document.querySelector('.plumb-mark');
+  var grab=plumb&&plumb.querySelector('.grab');
+  if(!plumb||!mark||!grab) return;
+  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var canSwing=!reduce && matchMedia('(pointer:fine)').matches && window.innerWidth>=760;
+  var theta=0, omega=0, raf=null, dragging=false, grabOffset=0, lastTh=0, lastT=0, markX=0;
+  var MAX=0.24, K=16, C=2.0;                 // clamp ~14deg; spring + damping
+
+  function place(){ markX=mark.getBoundingClientRect().left; plumb.style.left=markX+'px'; }
+  function apply(){ plumb.style.transform='rotate('+theta.toFixed(4)+'rad)'; }
+  function step(){
+    var dt=1/60, a=-K*Math.sin(theta)-C*omega;
+    omega+=a*dt; theta+=omega*dt; apply();
+    if(Math.abs(theta)<0.001 && Math.abs(omega)<0.003){ theta=0; omega=0; apply(); raf=null; return; }
+    raf=requestAnimationFrame(step);
+  }
+  function physics(){ if(raf) cancelAnimationFrame(raf); raf=requestAnimationFrame(step); }
+  function angleAt(e){ return Math.atan2(e.clientX-markX, Math.max(30, e.clientY)); }
+
+  place();
+  window.addEventListener('resize', place);
+
+  if(canSwing){
+    plumb.classList.add('swingable');
+    grab.addEventListener('pointerdown', function(e){
+      dragging=true; try{ grab.setPointerCapture(e.pointerId); }catch(_){}
+      if(raf){ cancelAnimationFrame(raf); raf=null; }
+      grabOffset=theta-angleAt(e); lastTh=theta; lastT=e.timeStamp;
+      plumb.classList.add('grabbing'); e.preventDefault();
+    });
+    grab.addEventListener('pointermove', function(e){
+      if(!dragging) return;
+      var th=angleAt(e)+grabOffset;
+      if(th>MAX) th=MAX; else if(th<-MAX) th=-MAX;
+      var dtms=Math.max(8, e.timeStamp-lastT);
+      omega=(th-lastTh)/(dtms/1000);
+      lastTh=th; lastT=e.timeStamp; theta=th; apply();
+    });
+    function up(){ if(!dragging) return; dragging=false; plumb.classList.remove('grabbing'); physics(); }
+    grab.addEventListener('pointerup', up);
+    grab.addEventListener('pointercancel', up);
+  } else {
+    grab.style.pointerEvents='none';   // no grab strip on touch/coarse pointers
+  }
+
+  if(!reduce){ theta=0.20; omega=-0.14; physics(); }   // intro swing
 })();
 </script>
 </body>
