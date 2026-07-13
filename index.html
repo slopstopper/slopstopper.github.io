@@ -40,7 +40,7 @@
   --gutter: clamp(2.75rem, 8vw, 7.5rem);
   --edge: clamp(1.1rem, 5vw, 4rem);
   --maxw: 1220px;
-  --plumbL: clamp(300px, 58vh, 600px);
+  --plumbL: clamp(380px, 88vh, 1200px);
   --mono:"PlexMono", ui-monospace, "SF Mono", Menlo, monospace;
   --disp:"Bricolage", ui-sans-serif, system-ui, sans-serif;
 }
@@ -94,10 +94,9 @@ a{color:inherit; text-decoration:none}
 .plumb .bob{position:absolute; bottom:0; left:-8px; width:16px; height:34px; transition:transform .18s ease;
   filter:drop-shadow(0 3px 7px color-mix(in srgb, var(--red) 45%, transparent))}
 .plumb .grab{position:absolute; top:0; bottom:-14px; left:-24px; width:48px;
-  pointer-events:auto; cursor:grab; touch-action:pan-y}
-.plumb.grabbing .grab{cursor:grabbing}
+  pointer-events:auto; cursor:pointer; touch-action:pan-y}
 .plumb.swingable .grab:hover ~ .bob{transform:scale(1.12)}
-.plumb.grabbing .bob{transform:scale(1.14)}
+.plumb.poked .bob{transform:scale(0.86)}
 
 /* ---------- masthead / nav ---------- */
 .topbar{position:sticky; top:0; z-index:40;
@@ -658,26 +657,31 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
   }
 })();
 
-// ---- swingable plumb line ----
+// ---- click-to-swing plumb line ----
 (function(){
   var plumb=document.querySelector('.plumb'), mark=document.querySelector('.plumb-mark');
   var grab=plumb&&plumb.querySelector('.grab');
   if(!plumb||!mark||!grab) return;
   var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   var canSwing=!reduce && matchMedia('(pointer:fine)').matches && window.innerWidth>=760;
-  var theta=0, omega=0, raf=null, dragging=false, grabOffset=0, lastTh=0, lastT=0, markX=0;
-  var MAX=0.24, K=16, C=2.0;                 // clamp ~14deg; spring + damping
+  var theta=0, omega=0, raf=null, markX=0, L=600, MAXT=0.16;
+  var K=16, C=1.9, KICK=0.62, OMAX=1.2;          // spring, damping, click impulse, velocity cap
 
-  function place(){ markX=mark.getBoundingClientRect().left; plumb.style.left=markX+'px'; }
+  function place(){
+    markX=mark.getBoundingClientRect().left; plumb.style.left=markX+'px';
+    L=plumb.offsetHeight||600; MAXT=Math.min(0.17, 120/L);   // cap swing so the bob stays in the gutter
+  }
   function apply(){ plumb.style.transform='rotate('+theta.toFixed(4)+'rad)'; }
   function step(){
     var dt=1/60, a=-K*Math.sin(theta)-C*omega;
-    omega+=a*dt; theta+=omega*dt; apply();
+    omega+=a*dt; theta+=omega*dt;
+    if(theta>MAXT){ theta=MAXT; if(omega>0) omega=0; }
+    else if(theta<-MAXT){ theta=-MAXT; if(omega<0) omega=0; }
+    apply();
     if(Math.abs(theta)<0.001 && Math.abs(omega)<0.003){ theta=0; omega=0; apply(); raf=null; return; }
     raf=requestAnimationFrame(step);
   }
   function physics(){ if(raf) cancelAnimationFrame(raf); raf=requestAnimationFrame(step); }
-  function angleAt(e){ return Math.atan2(e.clientX-markX, Math.max(30, e.clientY)); }
 
   place();
   window.addEventListener('resize', place);
@@ -685,27 +689,23 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
   if(canSwing){
     plumb.classList.add('swingable');
     grab.addEventListener('pointerdown', function(e){
-      dragging=true; try{ grab.setPointerCapture(e.pointerId); }catch(_){}
-      if(raf){ cancelAnimationFrame(raf); raf=null; }
-      grabOffset=theta-angleAt(e); lastTh=theta; lastT=e.timeStamp;
-      plumb.classList.add('grabbing'); e.preventDefault();
+      e.preventDefault();
+      var dir;
+      if(Math.abs(omega)<0.06 && Math.abs(theta)<0.03){
+        dir = (e.clientX - markX) < -1 ? -1 : 1;   // first push: shove the bob away from the click side
+      } else {
+        dir = omega>=0 ? 1 : -1;                   // already swinging: add energy in the same direction
+      }
+      omega += dir*KICK;
+      if(omega>OMAX) omega=OMAX; else if(omega<-OMAX) omega=-OMAX;
+      plumb.classList.add('poked'); setTimeout(function(){ plumb.classList.remove('poked'); }, 150);
+      physics();
     });
-    grab.addEventListener('pointermove', function(e){
-      if(!dragging) return;
-      var th=angleAt(e)+grabOffset;
-      if(th>MAX) th=MAX; else if(th<-MAX) th=-MAX;
-      var dtms=Math.max(8, e.timeStamp-lastT);
-      omega=(th-lastTh)/(dtms/1000);
-      lastTh=th; lastT=e.timeStamp; theta=th; apply();
-    });
-    function up(){ if(!dragging) return; dragging=false; plumb.classList.remove('grabbing'); physics(); }
-    grab.addEventListener('pointerup', up);
-    grab.addEventListener('pointercancel', up);
   } else {
-    grab.style.pointerEvents='none';   // no grab strip on touch/coarse pointers
+    grab.style.pointerEvents='none';               // no click strip on touch / coarse pointers
   }
 
-  if(!reduce){ theta=0.20; omega=-0.14; physics(); }   // intro swing
+  if(!reduce){ theta=0.15; omega=-0.10; physics(); }   // intro swing
 })();
 </script>
 </body>
