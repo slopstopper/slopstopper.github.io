@@ -143,15 +143,20 @@ p{margin:0 0 1.1rem}
 .hero .mast{width:clamp(240px,52vw,540px); height:auto; display:block; margin-bottom:clamp(2.2rem,5vw,3.4rem)}
 .hero .mast .wm-letter,.hero .mast .wm-bar{fill:var(--fg)}
 .hero .mast .wm-plumb{fill:var(--red)}
-.epi{font-weight:500; letter-spacing:-0.025em; line-height:1.12;
-  font-size:clamp(1.55rem,4vw,3.15rem); max-width:19ch; margin:0 0 2.2rem}
-.epi span{display:block; opacity:0; transform:translateY(14px);
+.epi{font-weight:500; letter-spacing:-0.03em; line-height:1.06;
+  font-size:clamp(1.3rem,2.4vw,2rem); max-width:none; margin:0 0 1.9rem}
+.epi > span{display:block; white-space:nowrap; opacity:0; transform:translateY(12px);
   animation:rise .9s cubic-bezier(.2,.75,.2,1) forwards}
-.epi span:nth-child(1){animation-delay:.15s}
-.epi span:nth-child(2){animation-delay:.30s}
-.epi span:nth-child(3){animation-delay:.45s}
-.epi span:nth-child(4){animation-delay:.60s}
+.epi > span:nth-child(1){animation-delay:.12s}
+.epi > span:nth-child(2){animation-delay:.24s}
+.epi > span:nth-child(3){animation-delay:.36s}
+.epi > span:nth-child(4){animation-delay:.48s}
 .epi .k{color:var(--red)}
+/* below tablet the long lines must wrap; keep them tidy */
+@media(max-width:820px){
+  .epi > span{white-space:normal}
+  .epi{font-size:clamp(1.5rem,6.2vw,2rem); line-height:1.08}
+}
 @keyframes rise{to{opacity:1; transform:none}}
 .hero .sub{max-width:52ch; font-size:clamp(1.05rem,1.1vw,1.22rem); color:var(--fg)}
 .hero .sub b{font-weight:700}
@@ -272,7 +277,7 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important; transition:none!important}
   .reveal{opacity:1; transform:none}
-  .epi span{opacity:1; transform:none}
+  .epi > span{opacity:1; transform:none}
 }
 </style>
 </head>
@@ -332,10 +337,10 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
     </svg>
 
     <h1 class="epi">
-      <span>Coherent doesn't mean it's <span class="k">correct</span>.</span>
-      <span>Completed doesn't mean it's been <span class="k">checked</span>.</span>
-      <span>Confidence doesn't mean it has <span class="k">provenance</span>.</span>
-      <span>It looks like it works — but does it have the right <span class="k">effect</span>?</span>
+      <span>Coherent doesn't mean it's <span class="k">correct</span></span>
+      <span>Saying it's completed doesn't always mean it's been <span class="k">checked</span></span>
+      <span>Confidence doesn't mean it has <span class="k">provenance</span></span>
+      <span>It looks like it works — but does it have the right <span class="k">effect?</span></span>
     </h1>
 
     <p class="sub"><b>slopstopper is a set of tools that catch slop in code.</b> Each stands
@@ -350,15 +355,14 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
 
   <!-- ============ WHAT IS SLOP ============ -->
   <section id="slop">
-    <div class="snum"><b>§01</b>the enemy</div>
-    <p class="eyebrow">Named</p>
+    <div class="snum"><b>§01</b>slop</div>
+    <p class="eyebrow">The problem</p>
     <h2>Slop is coherence without provenance.</h2>
     <p class="lead">Fluent, plausible, confident output — unmoored from anything that
       checked it. It sounds finished, looks measured, and reads as decided.</p>
-    <p class="muted" style="max-width:56ch;margin-top:1.4rem">Coherence used to be a
-      signal: if a document held together, someone had probably thought about it.
-      Generative tools broke that. Now everything holds together, including nonsense.
-      slopstopper puts the missing signal back — as something a machine can check.</p>
+    <p class="muted" style="max-width:54ch;margin-top:1.3rem">Polish used to imply
+      thought — if it held together, someone had reasoned it through. Now anything
+      can be made to look finished, whatever it's made of, at no cost.</p>
   </section>
 
   <!-- ============ THE TOOLS ============ -->
@@ -538,7 +542,7 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
           <text class="wm-letter" x="126.8" y="220" font-size="120" font-family="Arial,Helvetica,sans-serif" font-weight="800" letter-spacing="-3">opstopper</text>
         </g>
       </svg>
-      Instruments against synthetic coherence. Extracted from live practice, applied to themselves, and honest about what they don't yet do.
+      Tools that catch slop in code — each stands alone, any combination works as one system. Extracted from live practice, applied to themselves, honest about what they don't yet do.
     </div>
     <div class="fgroup">
       <h5>Tools</h5>
