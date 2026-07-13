@@ -198,12 +198,26 @@ p{margin:0 0 1.1rem}
 .tlinks a .arr{transition:transform .2s} .tlinks a:hover .arr{transform:translate(2px,-2px)}
 @media(max-width:720px){.tool{grid-template-columns:1fr; gap:1.1rem}}
 
-/* ---------- recursion pull-quote ---------- */
-.recursion .quote{font-family:var(--disp); font-weight:500; letter-spacing:-0.02em;
-  font-size:clamp(1.5rem,3.4vw,2.6rem); line-height:1.18; max-width:20ch}
-.recursion .quote em{font-style:normal; color:var(--red)}
-.recursion .body{max-width:60ch; margin-top:2rem; color:var(--muted); font-size:1.05rem}
-.recursion .body strong{color:var(--fg); font-weight:600}
+/* ---------- tools: run-together note ---------- */
+.together{margin-top:2.2rem; padding-top:1.4rem; border-top:1px solid var(--hair);
+  max-width:58ch; color:var(--muted); font-size:1.02rem}
+.together b{color:var(--fg); font-weight:600}
+
+/* ---------- recursion: applied to itself ---------- */
+.recursion .lead{max-width:54ch}
+.loops{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--hair);
+  border:1px solid var(--hair); margin:2.6rem 0 2.2rem}
+.loop{background:var(--bg); padding:1.7rem 1.5rem; display:flex; flex-direction:column; gap:.9rem}
+.loop .ln{font-family:var(--mono); font-size:.78rem; letter-spacing:.02em; color:var(--red);
+  display:inline-flex; align-items:baseline; gap:.5rem}
+.loop .rot{display:inline-block; font-size:1rem; transition:transform .6s cubic-bezier(.4,0,.2,1)}
+.loop:hover .rot{transform:rotate(360deg)}
+.loop p{margin:0; font-size:.96rem; line-height:1.55; color:var(--muted)}
+.loop p b{color:var(--fg); font-weight:600}
+.houserule{font-family:var(--disp); font-weight:500; letter-spacing:-0.015em;
+  font-size:clamp(1.15rem,1.7vw,1.45rem); line-height:1.4; max-width:52ch; color:var(--fg)}
+.houserule b{color:var(--red); font-weight:600}
+@media(max-width:720px){.loops{grid-template-columns:1fr}}
 
 /* ---------- risk register ---------- */
 .register{border-top:1px solid var(--hair-strong)}
@@ -344,8 +358,8 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
     </h1>
 
     <p class="sub"><b>slopstopper is a set of tools that catch slop in code.</b> Each stands
-      alone, and any combination of them works together as one system —
-      a plumb line for software: true vertical, by measurement, not by vibes.</p>
+      alone, and any combination of them works together as one system.
+      A plumb line for software: true vertical, by measurement, not by vibes.</p>
 
     <div class="cta">
       <a class="btn pri" href="#install">Install <span class="arr">→</span></a>
@@ -358,10 +372,10 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
     <div class="snum"><b>§01</b>slop</div>
     <p class="eyebrow">The problem</p>
     <h2>Slop is coherence without provenance.</h2>
-    <p class="lead">Fluent, plausible, confident output — unmoored from anything that
+    <p class="lead">Fluent, plausible, confident output, unmoored from anything that
       checked it. It sounds finished, looks measured, and reads as decided.</p>
     <p class="muted" style="max-width:54ch;margin-top:1.3rem">Polish used to imply
-      thought — if it held together, someone had reasoned it through. Now anything
+      thought: if it held together, someone had reasoned it through. Now anything
       can be made to look finished, whatever it's made of, at no cost.</p>
   </section>
 
@@ -371,24 +385,25 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
     <p class="eyebrow">Three tools · one system</p>
     <h2>Three concerns that don't overlap.</h2>
     <p class="lead" style="margin-bottom:2.6rem">Honesty of claims, economics of effort,
-      location of state. Each tool measures exactly one — and defers on the other two.</p>
+      location of state. Because the concerns don't overlap, the tools run together without
+      colliding: each stands alone, and any combination composes into one system.</p>
 
     <div class="tool">
       <div>
         <div class="tid">01 / plumb-line</div>
         <h3>plumb-line</h3>
-        <p class="measures">measures — <b>whether claims are honest</b></p>
+        <p class="measures">measures: <b>whether claims are honest</b></p>
       </div>
       <div>
-        <p class="desc">Provenance primitives for JavaScript and Python, plus skills that
-          audit a diff for laundered uncertainty — and refuse to launder it back out
-          during the fix. Mock, derived, measured, asserted: the label travels with the value.</p>
+        <p class="desc">Provenance primitives (JS + Python), plus skills that audit for
+          laundered uncertainty, and refuse to launder it back out during the fix. Mock,
+          derived, measured, asserted: the label travels with the value.</p>
         <div class="pills">
           <span class="pill live">● in use</span><span class="pill">v0.7</span>
           <span class="pill">JS + Python</span><span class="pill">zero deps</span>
         </div>
         <div class="tlinks">
-          <a href="https://effythealien.github.io/plumb-line/" target="_blank" rel="noopener">Live site <span class="arr">↗</span></a>
+          <a href="https://slopstopper.github.io/plumb-line/" target="_blank" rel="noopener">Live site <span class="arr">↗</span></a>
           <a href="https://github.com/slopstopper/plumb-line" target="_blank" rel="noopener">Repository <span class="arr">↗</span></a>
           <a href="https://www.npmjs.com/package/plumb-line-provenance" target="_blank" rel="noopener">npm / PyPI <span class="arr">↗</span></a>
         </div>
@@ -399,12 +414,12 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
       <div>
         <div class="tid">02 / tokenomics</div>
         <h3>tokenomics</h3>
-        <p class="measures">measures — <b>which model should do the work</b></p>
+        <p class="measures">measures: <b>which model should do the work</b></p>
       </div>
       <div>
-        <p class="desc">A discipline of context economics: route each task to the cheapest
-          capable tier, name your own lanes (no defaults shipped), and carry strategy across
-          sessions in a living playbook of reusable method — not re-exploration.</p>
+        <p class="desc">Route work to the cheapest capable tier, name your own lanes
+          (no defaults shipped), and carry strategy across sessions in a living playbook of
+          reusable method, so a session opens on strategy instead of re-exploration.</p>
         <div class="pills">
           <span class="pill live">● in use</span><span class="pill">v0.3</span>
           <span class="pill">3 skills + method</span>
@@ -419,13 +434,13 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
       <div>
         <div class="tid">03 / recursive-spine</div>
         <h3>recursive-spine</h3>
-        <p class="measures">measures — <b>where tracked state lives</b></p>
+        <p class="measures">measures: <b>where tracked state lives</b></p>
       </div>
       <div>
-        <p class="desc">GitHub issues and milestones as the only home of work state —
-          queryable, conflict-free, never a prose file that merges as text and loses rows.
-          Plus cross-project “pollen” that carries a proven pattern from one repo to the next.
-          Its own tracker existed before its first commit.</p>
+        <p class="desc">GitHub issues and milestones as the only home of work state,
+          queryable and conflict-free, never a prose file that merges as text and loses rows.
+          Skills teach the convention, stamp it onto a repo, migrate old ledgers, and digest
+          aging work. Cross-project “pollen” carries a proven pattern to the next repo.</p>
         <div class="pills">
           <span class="pill live">● in use</span><span class="pill">v0.8</span>
           <span class="pill">8 skills</span>
@@ -435,18 +450,37 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
         </div>
       </div>
     </div>
+    <p class="together">All three can run at once. Because their concerns are disjoint by
+      construction, composing them adds coverage, not conflict.</p>
   </section>
 
   <!-- ============ APPLIED TO ITSELF ============ -->
   <section id="recursion" class="recursion">
     <div class="snum"><b>§03</b>the recursion</div>
     <p class="eyebrow">Applied to itself</p>
-    <blockquote class="quote">The rule of the house: if a discipline is too heavy to
-      follow while building the tool that states it, the discipline is <em>wrong</em>.</blockquote>
-    <p class="body">plumb-line's audit skill was run against plumb-line and produced a
-      remediation plan it then had to survive. recursive-spine's issues and milestones existed
-      before its first commit; its labels were stamped by its own bootstrap; its deferrals age
-      on its own digest. <strong>Change the rule and leave the record alone.</strong></p>
+    <h2>Every tool is run on itself.</h2>
+    <p class="lead">None of these ask of you a standard they don't meet. Each one is turned
+      on its own repository, and has to survive the result.</p>
+    <div class="loops">
+      <div class="loop">
+        <span class="ln"><span class="rot">↺</span> plumb-line</span>
+        <p>Its auditor runs on plumb-line's own code before every release. The
+          <b>dogfood report</b> keeps what it finds, including its own false-positive rate.</p>
+      </div>
+      <div class="loop">
+        <span class="ln"><span class="rot">↺</span> tokenomics</span>
+        <p>It runs on its own build: a dogfooded playbook, and a <b>spend-ledger</b> that
+          makes its savings claims falsifiable against its own history.</p>
+      </div>
+      <div class="loop">
+        <span class="ln"><span class="rot">↺</span> recursive-spine</span>
+        <p>Its issues and milestones existed <b>before its first commit</b>. Its labels were
+          stamped by its own bootstrap. Its deferrals age on its own digest.</p>
+      </div>
+    </div>
+    <p class="houserule">The house rule: if a discipline is too heavy to follow while building
+      the tool that states it, the discipline is <b>wrong</b>. Change the rule, and leave the
+      record alone.</p>
   </section>
 
   <!-- ============ WHAT GOES WRONG ============ -->
@@ -466,8 +500,8 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
       <div class="risk"><dt><span class="rn">R4</span>Silent deferral</dt>
         <dd>A “later” that isn't written down anywhere usually just doesn't happen.</dd></div>
       <div class="risk"><dt><span class="rn">R5</span>Economics slop</dt>
-        <dd>An expensive model running work a cheap one could do — or a cheap one running work
-          it can't, and having to redo it.</dd></div>
+        <dd>An expensive model running work a cheap one could do, or a cheap one running work
+          it can't and having to redo it.</dd></div>
       <div class="risk"><dt><span class="rn">R6</span>Overstated maturity</dt>
         <dd>Everything gets called “production-ready,” including things that aren't.</dd></div>
     </dl>
@@ -478,7 +512,7 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
     <div class="snum"><b>§05</b>the plan</div>
     <p class="eyebrow">Expanding</p>
     <h2>More will follow.</h2>
-    <p class="lead">Three seams today, deliberately disjoint. The frame has room for more —
+    <p class="lead">Three seams today, deliberately disjoint. The frame has room for more,
       and the vocabulary is pinned so the same word can't mean three things.</p>
     <div class="axes">
       <div class="axis"><div class="n">AXIS 01</div><h4>Honesty</h4><p>Are the claims true, and do they carry where they came from?</p></div>
@@ -486,7 +520,7 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
       <div class="axis"><div class="n">AXIS 03</div><h4>State</h4><p>Does the record of the work live where it can be queried?</p></div>
     </div>
     <p class="note">Where the seams meet, the shared vocabulary is pinned in the
-      <a href="https://github.com/slopstopper/marketplace" target="_blank" rel="noopener">marketplace</a> —
+      <a href="https://github.com/slopstopper/marketplace" target="_blank" rel="noopener">marketplace</a>:
       one owner per term, the others defer or alias. New instruments join on that condition, or not at all.</p>
   </section>
 
@@ -509,7 +543,7 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
       </div>
     </div>
     <p class="aside">Prefer to read first? Start with <b>plumb-line</b>'s
-      <a href="https://effythealien.github.io/plumb-line/" target="_blank" rel="noopener" style="border-bottom:1px solid var(--red)">live docs</a>,
+      <a href="https://slopstopper.github.io/plumb-line/" target="_blank" rel="noopener" style="border-bottom:1px solid var(--red)">live docs</a>,
       or the org profile on <a href="https://github.com/slopstopper" target="_blank" rel="noopener" style="border-bottom:1px solid var(--red)">GitHub</a>.</p>
   </section>
 
@@ -520,7 +554,7 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
     <p class="big">None of this stops you from shipping <span class="s">slop</span>. It just
       makes it visible, attributable, and slightly embarrassing.</p>
     <p class="honest">From live practice in a few real projects, written up as practice
-      reports — not benchmarks. We would love to tell you these tools are <strong>battle-tested</strong>;
+      reports, not benchmarks. We would love to tell you these tools are <strong>battle-tested</strong>;
       our own CI fails any README containing that phrase.</p>
   </section>
 
@@ -542,7 +576,7 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
           <text class="wm-letter" x="126.8" y="220" font-size="120" font-family="Arial,Helvetica,sans-serif" font-weight="800" letter-spacing="-3">opstopper</text>
         </g>
       </svg>
-      Tools that catch slop in code — each stands alone, any combination works as one system. Extracted from live practice, applied to themselves, honest about what they don't yet do.
+      Tools that catch slop in code. Each stands alone; any combination works as one system. Extracted from live practice, applied to themselves, honest about what they don't yet do.
     </div>
     <div class="fgroup">
       <h5>Tools</h5>
@@ -554,7 +588,7 @@ footer{border-top:1px solid var(--hair-strong); padding-block:3rem 3.5rem;
       <h5>Org</h5>
       <a href="https://github.com/slopstopper" target="_blank" rel="noopener">GitHub org ↗</a>
       <a href="https://github.com/slopstopper/marketplace" target="_blank" rel="noopener">Marketplace ↗</a>
-      <a href="https://effythealien.github.io/plumb-line/" target="_blank" rel="noopener">plumb-line docs ↗</a>
+      <a href="https://slopstopper.github.io/plumb-line/" target="_blank" rel="noopener">plumb-line docs ↗</a>
     </div>
   </div>
   <div class="colophon">
