@@ -3,7 +3,7 @@
   "tools": {
     "plumb-line": {
       "repo": "slopstopper/plumb-line",
-      "version": "v0.12"
+      "version": "v0.12.1"
     },
     "tokenomics": {
       "repo": "slopstopper/tokenomics",
@@ -14,5 +14,5 @@
       "version": "v0.12.1"
     }
   },
-  "lastSynced": "2026-10-03T07:40:29Z"
+  "lastSynced": "2026-10-04T12:31:16Z"
 }
